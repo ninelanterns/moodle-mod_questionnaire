@@ -1376,10 +1376,13 @@ class questionnaire_question {
     }
 
     function sectiontext_survey_display($data) {
+        //-----------------------------------------------------------------------------------------------------------
+        //------------------------------------------------BEGIN CORE HACK--------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------
         echo '
     <div class="questioncontainer">
         <div class="qnOuter">
-            <table class="qnInnerTable" style="width:100%" cellpadding="10"  cellspacing="1">
+            <table class="qnInnerTable" style="width:659px" cellpadding="10"  cellspacing="1">
                 <tr>
                     <td class="qnInner" style="height:35px">' .
                         format_text(file_rewrite_pluginfile_urls($this->content, 'pluginfile.php', $this->context->id,
@@ -1390,6 +1393,9 @@ class questionnaire_question {
         </div>
     </div>
         ';
+        //-----------------------------------------------------------------------------------------------------------
+        //-------------------------------------------------END CORE HACK---------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------
     }
 
 ///***

@@ -3,7 +3,14 @@
 /// Library of functions and constants for module questionnaire
 /// (replace questionnaire with the name of your module and delete this line)
 
-require_once('locallib.php');
+//------------------------------------------------------------------------------------------------
+//---------------BEGIN CORE HACK------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+require_once(__DIR__.'/locallib.php');
+//------------------------------------------------------------------------------------------------
+//---------------END CORE HACK--------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+
 /**
  * If start and end date for the questionnaire are more than this many seconds
  * apart they will be represented by two separate events in the calendar

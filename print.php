@@ -19,7 +19,9 @@
     if (! $cm = get_coursemodule_from_instance("questionnaire", $questionnaire->id, $course->id)) {
         print_error('invalidcoursemodule');
     }
-
+// ---- BEGIN CORE HACK - Disable printing
+    print_error('nopermissions', 'moodle', $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id);
+// ---- END CORE HACK - Disable printing
 /// Check login and get context.
     require_login($courseid);
 

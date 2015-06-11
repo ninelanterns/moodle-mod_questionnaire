@@ -13,6 +13,8 @@
 
     $sid = optional_param('sid', NULL, PARAM_INT);  // Survey id.
 
+    $psatid = optional_param('psatid', NULL, PARAM_INT); //PSAT id
+
     if ($id) {
         if (! $cm = get_coursemodule_from_id('questionnaire', $id)) {
             print_error('invalidcoursemodule');
@@ -52,6 +54,9 @@
     if (isset($sid)) {
         $url->param('sid', $sid);
     }
+    if (isset($psatid)) {
+        $url->param('psatid', $psatid);
+    }
 
     $PAGE->set_url($url);
     $PAGE->set_context($context);
@@ -60,7 +65,7 @@
 
 /// Print the page header
 
-    $questionnaire = new questionnaire(0, $questionnaire, $course, $cm);
+    $questionnaire = new questionnaire(0, $questionnaire, $course, $cm, true,$psatid);
     $questionnaire->strquestionnaires = get_string("modulenameplural", "questionnaire");
     $questionnaire->strquestionnaire  = get_string("modulename", "questionnaire");
 

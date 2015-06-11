@@ -27,6 +27,7 @@ class questionnaire {
      * @var object $survey
      */
      var $survey;
+     var $psatid;
 
 /// Class Methods
 
@@ -34,8 +35,11 @@ class questionnaire {
      * The class constructor
      *
      */
-    function questionnaire($id = 0, $questionnaire = null, &$course, &$cm, $addquestions = true) {
+    function questionnaire($id = 0, $questionnaire = null, &$course, &$cm, $addquestions = true, $psatid = false) {
         global $DB;
+
+
+        $this->psatid = $psatid;
 
         if ($id) {
             $questionnaire = $DB->get_record('questionnaire', array('id' => $id));
@@ -77,8 +81,8 @@ class questionnaire {
      * Fake constructor to keep PHP5 happy
      *
      */
-    function __construct($id = 0, $questionnaire = null, &$course, &$cm, $addquestions = true) {
-        $this->questionnaire($id, $questionnaire, $course, $cm, $addquestions);
+    function __construct($id = 0, $questionnaire = null, &$course, &$cm, $addquestions = true, $psatid = false) {
+        $this->questionnaire($id, $questionnaire, $course, $cm, $addquestions, $psatid);
     }
 
     /**
@@ -137,6 +141,9 @@ class questionnaire {
         $PAGE->set_heading(format_string($this->course->fullname));
         $PAGE->set_button(update_module_button($this->cm->id, $this->course->id, $this->strquestionnaire));
         echo $OUTPUT->header();
+        if ($this->psatid) {
+            echo '<div id="psat">';
+        }
 
         /// print the tabs
         $questionnaire = $this;
@@ -194,6 +201,8 @@ class questionnaire {
 
             $viewform = data_submitted($CFG->wwwroot."/mod/questionnaire/view.php");
 
+            // BEGIN CORE HACK: customer don't want to enable printing - disable it
+/*
             if ((!empty($this->questions)) && $this->capabilities->printblank) {
                 // open print friendly as popup window
 	            $image_url = $CFG->wwwroot.'/mod/questionnaire/images/';
@@ -207,8 +216,13 @@ class questionnaire {
 	            $action = new popup_action('click', $link, $name, $options);
                 $class = "floatprinticon";
 	            echo $OUTPUT->action_link($link, $linkname, $action, array('class'=>$class, 'title'=>$title));
+           }
+*/
+            echo '<style type="text/css" media="print">BODY {display:none;visibility:hidden;}</style>';
+            // END CORE HACK
+            if (! ($this->psatid && isset($viewform->submitquestionnaire) && isset($viewform->submittype))){
+                $msg = $this->print_survey($USER->id, $quser);
             }
-            $msg = $this->print_survey($USER->id, $quser);
     ///     If Survey was submitted with all required fields completed ($msg is empty),
     ///     then record the submittal.
             if (isset($viewform->submit) && isset($viewform->submittype) &&
@@ -263,6 +277,9 @@ class questionnaire {
             echo ('<div class="message">'.get_string("alreadyfilled", "questionnaire", $msgstring).'</div>');
         }
 
+        if ($this->psatid){
+            echo '</div>'; // <div id="psat">
+        }
     /// Finish the page
         echo $OUTPUT->footer($this->course);
     }
@@ -539,6 +556,10 @@ class questionnaire {
         $msg = '';
         $action = $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$this->cm->id;
 
+        if ($this->psatid){
+            $action .= '&psatid='.$this->psatid;
+        }
+
 /// TODO - Need to rework this. Too much crossover with ->view method.
         if(!empty($formdata->submit)) {
             $msg = $this->response_check_format($formdata->sec, $formdata);
@@ -654,6 +675,7 @@ class questionnaire {
         echo '<div class="generalbox">';
 
     ?>
+    <div class="quadrant<?php echo ($formdata->sec); ?>">
     <form id="phpesp_response" method="post" action="<?php echo($action); ?>">
     <div>
     <input type="hidden" name="referer" value="<?php echo (!empty($formdata->referer) ? htmlspecialchars($formdata->referer) : ''); ?>" />
@@ -661,13 +683,26 @@ class questionnaire {
     <input type="hidden" name="sid" value="<?php echo($this->survey->id); ?>" />
     <input type="hidden" name="rid" value="<?php echo (isset($formdata->rid) ? $formdata->rid : '0'); ?>" />
     <input type="hidden" name="sec" value="<?php echo($formdata->sec); ?>" />
+    <input id="goto_sec" type="hidden" name="gotosec" value="" />
     </div>
     <?php
         if (isset($this->questions) && $num_sections) { // sanity check
-            $this->survey_render($formdata->sec, $msg, $formdata);
-            echo '<div class="notice" style="padding: 0.5em 0 0.5em 0.2em;"><div class="buttons">';
+            if ($this->psatid){
+                echo '<div id="questionscontainer">';
+                $this->survey_render($formdata->sec, $msg, $formdata);
+                echo '</div>';
+            } else {
+                $this->survey_render($formdata->sec, $msg, $formdata);
+            }
+            echo '<div class="notice" style="padding: 0.5em 0 0.5em 0.2em;">'
+            if (isset($this->questions) && $num_sections) { // sanity check
+                if ($this->psatid){
+                    echo get_string('psat_scoring', 'questionnaire');
+                }
+            }
+            echo '<div class="buttons">';
             if (($this->navigate) && ($formdata->sec > 1)) {
-                echo '<input type="submit" name="prev" value="'.get_string('previouspage', 'questionnaire').'" />';
+                echo '<input type="submit" id="prev" name="prev" value="'.get_string('previouspage', 'questionnaire').'" />';
             }
             if ($this->resume) {
                 echo '<input type="submit" name="resume" value="'.get_string('save', 'questionnaire').'" />';
@@ -681,7 +716,31 @@ class questionnaire {
             } else {
                 echo '<div><input type="submit" name="next" value="'.get_string('nextpage', 'questionnaire').'" /></div>';
             }
-            echo '</div></div>'; //divs notice & buttons
+            echo '</div>';
+            echo '<div class="pageindicator"><p>Page '.$formdata->sec.' of '.$num_sections.'</p>
+            		<div class="pageindicator_blue" onclick="simulate_submit(1)"></div>
+		            <div class="pageindicator_pink" onclick="simulate_submit(2)"></div>
+        		    <div class="pageindicator_green" onclick="simulate_submit(3)"></div>
+		            <div class="pageindicator_purple" onclick="simulate_submit(4)"></div>
+        		    </div>
+		            <script type="text/javascript">
+        			    function simulate_submit(destination_page){
+
+            			    if (document.getElementById(\'continue\')){
+				                var btn = document.getElementById(\'continue\');
+				            }
+                			else{
+				                btn = document.getElementById(\'prev\');
+				            }
+				            document.getElementById(\'goto_sec\').value=destination_page;
+				            btn.click();
+            			}
+
+
+                    </script>
+
+                    </div>'; //divs notice & buttons
+
             echo '</form>';
 
             echo '</div>'; //div class="generalbox"
@@ -692,6 +751,7 @@ class questionnaire {
             echo '</form>';
             echo '</div>'; //div class="generalbox"
         }
+        echo '</div>';
     }
 
     function survey_render($section = 1, $message = '', &$formdata) {
@@ -813,7 +873,20 @@ class questionnaire {
             echo ($groupname);
             echo ($timesubmitted);
         }
-        echo '<h3 class="surveyTitle">'.s($this->survey->title).'</h3>';
+        echo '<div class="surveyTitle">';
+        switch ($section) {
+            case 1: $quadrant = get_string('quad_individual', 'local_psat');
+                break;
+            case 2: $quadrant = get_string('quad_board', 'local_psat');
+                break;
+            case 3: $quadrant = get_string('quad_organisational', 'local_psat');
+                break;
+            case 4: $quadrant = get_string('quad_stakholder', 'local_psat');
+                break;
+        }
+        echo '<h3>'.s($this->survey->title.' - '.$quadrant).'</h3>';
+        echo '</div>';
+        echo get_string('all_question_mandatory', 'local_psat');
         if ($section == 1) {
             if ($this->survey->subtitle) {
                 echo '<h4 class="surveySubtitle">'.(format_text($this->survey->subtitle, FORMAT_HTML)).'</h4>';
@@ -1196,7 +1269,7 @@ class questionnaire {
                 }
                 if ( $num == 0 && $record->required == 'y') {
                     $missing++;
-                    $strmissing .= get_string('num', 'questionnaire').$qnum.'. ';
+                    $strmissing .= get_string('num', 'questionnaire').$record->name.'. ';
                     break;
                 }
                 // if nodupes and nb choice restricted, nbchoices may be > actual choices, so limit it to $record->length
@@ -1206,7 +1279,7 @@ class questionnaire {
                 }
                 if ( $num != $nbchoices && $num!=0 ) {
                     $wrongformat++;
-                    $strwrongformat .= get_string('num', 'questionnaire').$qnum.'. ';
+                    $strwrongformat .= get_string('num', 'questionnaire').$record->name.'. ';
                 }
                 break;
 
@@ -1340,6 +1413,16 @@ class questionnaire {
             $record->grade = 1;  /// Don't know what to do if its a scale...
         } else {
             $record->grade = $this->grade;
+        }
+
+        if ($this->psatid){
+            $psat_record = new object;
+            $psat_record->id = $this->psatid;
+            $psat_record->questionnaire_responseid = $rid;
+            $psat_record->completed = 1;
+            $psat_record->lastaccessed = $record->submitted;
+            $psat_record->questionnaire_lastaccessed = $this->timemodified;
+            $DB->update_record('psat_assessments', $psat_record);
         }
         return $DB->update_record('questionnaire_response', $record);
     }
@@ -1550,6 +1633,16 @@ class questionnaire {
             foreach ($this->questionsbysec[$section] as $question) {
                 $question->insert_response($rid, $formdata);
             }
+        }
+
+        if ($this->psatid) {
+            $psat_record = new object;
+            $psat_record->id = $this->psatid;
+            $psat_record->questionnaire_responseid = $rid;
+            $psat_record->lastaccessed = time();
+            $psat_record->completed = 0;
+            $psat_record->questionnaire_lastaccessed = $this->timemodified;
+            $DB->update_record('psat_assessments', $psat_record);
         }
         return($rid);
     }
@@ -1931,6 +2024,19 @@ class questionnaire {
         global $CFG, $USER;
         global $DB;
 
+        if ($this->psatid){
+            /*
+            echo get_string('questionnaire_thankyou', 'local_psat');
+            echo ' <form name="continue" action="/local/psat/report/index.php" method="get">
+                       <input type="hidden" name="id" value="'.$this->psatid.'" />
+                       <p><input type="submit" value="Continue"></p>
+                    </form>';
+
+             */
+            redirect('/local/psat/report/index.php?id='.$this->psatid);
+            return;
+        }
+
         $select = 'id = '.$this->survey->id;
         $fields = 'thanks_page,thank_head,thank_body';
         if ($result = $DB->get_record_select('questionnaire_survey', $select, null, $fields)) {
@@ -1979,6 +2085,14 @@ class questionnaire {
     }
 
     function response_goto_saved($url) {
+
+        if ($this->psatid){
+            echo get_string('questionnaire_responsesaved', 'local_psat');
+            echo ' <form name="continue" action="/local/psat" method="get">
+                       <p><input type="submit" value="Continue"></p>
+                    </form>';
+            return;
+        }
     ?>
     <div class="thankbody">
     <?php print_string('savedprogress', 'questionnaire', '<strong>'.get_string('resumesurvey', 'questionnaire').'</strong>'); ?>
