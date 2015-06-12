@@ -31,6 +31,8 @@ $a = optional_param('a', null, PARAM_INT);      // questionnaire ID.
 $sid = optional_param('sid', null, PARAM_INT);  // Survey id.
 $resume = optional_param('resume', null, PARAM_INT);    // Is this attempt a resume of a saved attempt?
 
+$psatid = optional_param('psatid', NULL, PARAM_INT); //PSAT id
+
 if ($id) {
     if (! $cm = get_coursemodule_from_id('questionnaire', $id)) {
         print_error('invalidcoursemodule');
@@ -67,10 +69,13 @@ if (isset($id)) {
 } else {
     $url->param('a', $a);
 }
+if (isset($psatid)) {
+    $url->param('psatid', $psatid);
+}
 
 $PAGE->set_url($url);
 $PAGE->set_context($context);
-$questionnaire = new questionnaire(0, $questionnaire, $course, $cm);
+$questionnaire = new questionnaire(0, $questionnaire, $course, $cm, true, $psatid);
 
 $questionnaire->strquestionnaires = get_string("modulenameplural", "questionnaire");
 $questionnaire->strquestionnaire  = get_string("modulename", "questionnaire");
