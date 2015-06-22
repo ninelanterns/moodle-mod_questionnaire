@@ -25,18 +25,21 @@ class questionnaire {
      */
      //  Todo var $survey; TODO.
 
-    var $psatid;
-
     // Class Methods.
 
     /*
      * The class constructor
      *
      */
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
     public function __construct($id = 0, $questionnaire = null, &$course, &$cm, $addquestions = true, $psatid = false) {
         global $DB;
-
         $this->psatid = $psatid;
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
 
         if ($id) {
             $questionnaire = $DB->get_record('questionnaire', array('id' => $id));
@@ -554,10 +557,15 @@ class questionnaire {
         $numsections = isset($this->questionsbysec) ? count($this->questionsbysec) : 0;    // Indexed by section.
         $msg = '';
         $action = $CFG->wwwroot.'/mod/questionnaire/complete.php?id='.$this->cm->id;
-
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($this->psatid){
             $action .= '&psatid='.$this->psatid;
         }
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
 
         // TODO - Need to rework this. Too much crossover with ->view method.
 
@@ -821,6 +829,10 @@ class questionnaire {
         }
         echo '<h3 class="surveyTitle">'.format_text($this->survey->title, FORMAT_HTML).'</h3>';
 
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
+        // no printing!
         echo '<style type="text/css" media="print">body {display:none;visibility:hidden;}</style>';
 /*
         // We don't want to display the print icon in the print popup window itself!
@@ -838,7 +850,9 @@ class questionnaire {
             echo $OUTPUT->action_link($link, $linkname, $action, array('class' => $class, 'title' => $title), new pix_icon('t/print', $title));
         }
 */
-
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($section == 1) {
             if ($this->survey->subtitle) {
                 echo '<h4 class="surveySubtitle">'.(format_text($this->survey->subtitle, FORMAT_HTML)).'</h4>';
@@ -1476,7 +1490,9 @@ class questionnaire {
         } else {
             $record->grade = $this->grade;
         }
-
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($this->psatid){
             $psat_record = new object;
             $psat_record->id = $this->psatid;
@@ -1486,6 +1502,9 @@ class questionnaire {
             $psat_record->questionnaire_lastaccessed = $this->timemodified;
             $DB->update_record('psat_assessments', $psat_record);
         }
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         return $DB->update_record('questionnaire_response', $record);
     }
 
@@ -1722,7 +1741,9 @@ class questionnaire {
                 $question->insert_response($rid);
             }
         }
-
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($this->psatid) {
             $psat_record = new object;
             $psat_record->id = $this->psatid;
@@ -1732,6 +1753,9 @@ class questionnaire {
             $psat_record->questionnaire_lastaccessed = $this->timemodified;
             $DB->update_record('psat_assessments', $psat_record);
         }
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         return($rid);
     }
 
@@ -2094,11 +2118,16 @@ class questionnaire {
 
     private function response_goto_thankyou() {
         global $CFG, $USER, $DB;
-
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($this->psatid){
             redirect('/local/psat/report/index.php?id='.$this->psatid);
             return;
         }
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
 
         $select = 'id = '.$this->survey->id;
         $fields = 'thanks_page, thank_head, thank_body';
@@ -2156,7 +2185,9 @@ class questionnaire {
 
     private function response_goto_saved($url) {
         global $CFG;
-
+// -----------------------------------------------------------------------------
+// ------------------------ BEGIN CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         if ($this->psatid){
             echo get_string('questionnaire_responsesaved', 'local_psat');
             echo ' <form name="continue" action="/local/psat" method="get">
@@ -2164,7 +2195,9 @@ class questionnaire {
                     </form>';
             return;
         }
-
+// -----------------------------------------------------------------------------
+// -------------------------- END CORE HACK ------------------------------------
+// -----------------------------------------------------------------------------
         $resumesurvey = get_string('resumesurvey', 'questionnaire');
         $savedprogress = get_string('savedprogress', 'questionnaire', '<strong>'.$resumesurvey.'</strong>');
 
