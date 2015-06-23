@@ -1189,17 +1189,9 @@ class questionnaire_question {
                 $onclick = ' onclick="other_check_empty(name, value)"';
             } // End dependents.
             $output .= '<input name="q'.$this->id.'" id="'.$htmlid.'" type="radio" value="'.$id.'"'.$onclick;
-// -----------------------------------------------------------------------------
-// ------------------------ BEGIN CORE HACK ------------------------------------
-// -----------------------------------------------------------------------------
-/*
             if (!$ischecked && !$blankquestionnaire) {
                 $output .= ' checked="checked"';
             }
-*/
-// -----------------------------------------------------------------------------
-// -------------------------- END CORE HACK ------------------------------------
-// -----------------------------------------------------------------------------
             $content = get_string('noanswer', 'questionnaire');
             $output .= ' /><label for="'.$htmlid.'" >'.
                 format_text($content, FORMAT_HTML).'</label>';
