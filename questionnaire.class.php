@@ -1654,7 +1654,13 @@ class questionnaire {
             $userto->mailformat = 1;
             // Dummy userid to keep email_to_user happy in moodle 2.6.
             $userto->id = -10;
-            $userfrom = $CFG->noreplyaddress;
+            $userto->maildisplay = 1;
+
+            $userfrom = new stdClass();
+            $userfrom->email = $CFG->noreplyaddress;
+            $userfrom->mailformat = 1;
+            $userfrom->id = -10;
+            $userfrom->maildisplay = 1;
             if (email_to_user($userto, $userfrom, $subject, $altbody, $bodyhtml)) {
                 $return = $return && true;
             } else {
