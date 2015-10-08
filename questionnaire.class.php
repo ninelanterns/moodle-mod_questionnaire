@@ -2140,7 +2140,7 @@ class questionnaire {
 // ------------------------ BEGIN CORE HACK ------------------------------------
 // -----------------------------------------------------------------------------
         if ($this->psatid){
-            redirect('/local/psat/report/index.php?id='.$this->psatid);
+            redirect('/local/psat/graphreport.php?id='.$this->psatid);
             return;
         }
 // -----------------------------------------------------------------------------
