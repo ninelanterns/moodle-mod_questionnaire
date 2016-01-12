@@ -705,7 +705,7 @@ class questionnaire {
 
             if ($formdata->sec == $numsections) {
                 echo '
-                    <div><input type="hidden" name="submittype" value="Submit Survey" />
+                    &nbsp;<div><input type="hidden" name="submittype" value="Submit Survey" />
                     <input type="submit" name="submit" value="'.get_string('submitsurvey', 'questionnaire').'" /></div>';
             } else {
                 echo '&nbsp;<div><input type="submit" name="next" value="'.
@@ -2140,6 +2140,8 @@ class questionnaire {
 // ------------------------ BEGIN CORE HACK ------------------------------------
 // -----------------------------------------------------------------------------
         if ($this->psatid){
+            $CFG->debugdisplay = 0;
+            ini_set('display_errors', '0'); // prevent debugging message from
             redirect('/local/psat/graphreport.php?id='.$this->psatid);
             return;
         }
