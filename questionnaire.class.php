@@ -147,7 +147,7 @@ class questionnaire {
         $questionnaire = $this;
 
         if (!$this->cm->visible && !$this->capabilities->viewhiddenactivities) {
-                notice(get_string("activityiscurrentlyhidden"));
+            notice(get_string("activityiscurrentlyhidden"));
         }
 
         if (!$this->capabilities->view) {
@@ -677,6 +677,32 @@ class questionnaire {
             $this->response_import_sec($formdata->rid, $formdata->sec, $formdata);
         }
 
+        $submitted = data_submitted();
+        if (empty($submitted->sec) && isset($this->questionsbysec[$formdata->sec])) {
+            $allanswered = true;
+            foreach ($this->questionsbysec[$formdata->sec] as $question) {
+                if ($question->type_id==4 && empty($formdata->{'q'.$question->id})) {
+                    $allanswered = false;
+                }
+            }
+            if ($allanswered) {
+                $formdata->sec++;
+                $formdata->next = true;
+            }
+        }
+        $direction = '';
+        if (!empty($formdata->next)) {
+            $direction = 'next';
+        } else if (!empty($formdata->prev)) {
+            $direction = 'prev';
+        }
+        $quadrant_changed = $direction && $this->is_quadrant_changed($formdata->sec, $direction);
+        if ($quadrant_changed && $direction=='prev') {
+            $formdata->sec++;
+        } else if (!empty($formdata->prevquadrant)) {
+            $formdata->sec--;
+        }
+
         $formdatareferer = !empty($formdata->referer) ? htmlspecialchars($formdata->referer) : '';
         $formdatarid = isset($formdata->rid) ? $formdata->rid : '0';
         echo '<div class="generalbox">';
@@ -692,6 +718,16 @@ class questionnaire {
                 </div>
             ';
         if (isset($this->questions) && $numsections) { // Sanity check.
+//------------------------------------------------------------------------------------------
+//------------BEGIN CORE HACK---------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+            if ($quadrant_changed) {
+                echo $this->print_quadrant_review($this->get_quadrant($formdata->sec-1));
+                return;
+            }
+//------------------------------------------------------------------------------------------
+//------------END CORE HACK-----------------------------------------------------------------
+//------------------------------------------------------------------------------------------
             $this->survey_render($formdata->sec, $msg, $formdata);
             echo '<div class="notice" style="padding: 0.5em 0 0.5em 0.2em;"><div class="buttons">';
             if ($formdata->sec > 1) {
@@ -722,6 +758,42 @@ class questionnaire {
             echo '</div>';
         }
     }
+
+//------------------------------------------------------------------------------------------
+//------------BEGIN CORE HACK---------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+    /**
+     * Get the quadrant of a section
+     */
+    private function get_quadrant($sec) {
+        if (empty($this->questionsbysec[$sec])) {
+            return false;
+        }
+        foreach ($this->questionsbysec[$sec] as $question) {
+            if ($question->name) {
+                return substr($question->name, 0, strpos($question->name, '.'));
+            }
+        }
+        return false;
+    }
+
+    private function is_quadrant_changed($sec, $direction) {
+        $lastquadrant = $this->get_quadrant($sec + ($direction=='next' ? -1 : 1));
+        $nextquadrant = $this->get_quadrant($sec);
+        return $lastquadrant!=$nextquadrant;
+    }
+
+    private function print_quadrant_review($quadrant) {
+        global $CFG;
+        require_once($CFG->dirroot.'/local/psat/classes/quadrantreview.php');
+        $quadrantreview = new quadrantreview($this->psatid, $quadrant);
+        echo $quadrantreview->header();
+        echo $quadrantreview->question_list();
+        echo $quadrantreview->submit_buttons();
+    }
+//------------------------------------------------------------------------------------------
+//------------END CORE HACK-----------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 
     private function survey_render($section = 1, $message = '', &$formdata) {
 
