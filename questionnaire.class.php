@@ -600,9 +600,38 @@ class questionnaire {
                 return;
             }
 
-            $msg = $this->response_check_format($formdata->sec, $formdata);
-            if (empty($msg)) {
-                return;
+            if (empty($this->psatid)) {
+                $msg = $this->response_check_format($formdata->sec, $formdata);
+                if (empty($msg)) {
+                    return;
+                }
+            } else {
+                global $USER;
+                $this->response_commit($formdata->rid);
+                questionnaire_record_submission($this, $USER->id, $formdata->rid);
+                if ($this->grade > 0) {
+                    $this->cmidnumber = $this->cm->idnumber;
+                    questionnaire_update_grades($this, $quser);
+                }
+                $completion = new completion_info($this->course);
+                if ($completion->is_enabled($this->cm) && $this->completionsubmit) {
+                    $completion->update_state($this->cm, COMPLETION_COMPLETE);
+                }
+
+                // Log this submitted response.
+                $context = context_module::instance($this->cm->id);
+                $anonymous = $this->respondenttype == 'anonymous';
+                $params = array(
+                    'context' => $context,
+                    'courseid' => $this->course->id,
+                    'relateduserid' => $USER->id,
+                    'anonymous' => $anonymous,
+                    'other' => array('questionnaireid' => $this->id)
+                );
+                $event = \mod_questionnaire\event\attempt_submitted::create($params);
+                $event->trigger();
+                $this->response_send_email($formdata->rid);
+                $this->response_goto_thankyou();
             }
         }
 
@@ -654,7 +683,7 @@ class questionnaire {
 
                 $formdata->rid = $this->response_insert($this->survey->id, $formdata->sec, $formdata->rid, $quser);
             // Prevent navigation to previous page if wrong format in answered questions).
-            $msg = $this->response_check_format($formdata->sec, $formdata, $checkmissing = false, $checkwrongformat = true);
+
             if ( $msg ) {
                 $formdata->prev = '';
             } else {
@@ -677,6 +706,9 @@ class questionnaire {
             $this->response_import_sec($formdata->rid, $formdata->sec, $formdata);
         }
 
+//------------------------------------------------------------------------------------------
+//------------BEGIN CORE HACK---------------------------------------------------------------
+//------------------------------------------------------------------------------------------
         $submitted = data_submitted();
         if (empty($submitted->sec) && isset($this->questionsbysec[$formdata->sec])) {
             $allanswered = true;
@@ -702,6 +734,9 @@ class questionnaire {
         } else if (!empty($formdata->prevquadrant)) {
             $formdata->sec--;
         }
+//------------------------------------------------------------------------------------------
+//------------END CORE HACK-----------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 
         $formdatareferer = !empty($formdata->referer) ? htmlspecialchars($formdata->referer) : '';
         $formdatarid = isset($formdata->rid) ? $formdata->rid : '0';
@@ -739,7 +774,8 @@ class questionnaire {
 
             //  Add a 'hidden' variable for the mod's 'view.php', and use a language variable for the submit button.
 
-            if ($formdata->sec == $numsections) {
+            if ($formdata->sec > $numsections) {
+                // would never satisfy, we submit in the quadrant review
                 echo '
                     &nbsp;<div><input type="hidden" name="submittype" value="Submit Survey" />
                     <input type="submit" name="submit" value="'.get_string('submitsurvey', 'questionnaire').'" /></div>';
@@ -789,7 +825,7 @@ class questionnaire {
         $quadrantreview = new quadrantreview($this->psatid, $quadrant);
         echo $quadrantreview->header();
         echo $quadrantreview->question_list();
-        echo $quadrantreview->submit_buttons();
+        echo $quadrantreview->submit_buttons($quadrant);
     }
 //------------------------------------------------------------------------------------------
 //------------END CORE HACK-----------------------------------------------------------------
@@ -1535,9 +1571,9 @@ class questionnaire {
     }
 
     private function response_import_sec($rid, $sec, &$varr) {
-        if ($sec < 1 || !isset($this->questionsbysec[$sec])) {
-            return;
-        }
+//        if ($sec < 1 || !isset($this->questionsbysec[$sec])) {
+//            return;
+//        }
         $vals = $this->response_select($rid, 'content');
         reset($vals);
         foreach ($vals as $id => $arr) {
